@@ -25,6 +25,7 @@ use vars qw($VERSION %IRSSI);
 
 use File::Path qw(make_path);
 use Time::HiRes qw(gettimeofday);
+use Data::Dumper;
 
 use Irssi;
 $VERSION = '0.0.1';
@@ -45,22 +46,25 @@ if (!-d $dir) {
 sub filewrite {
 	my ($text) = @_;
 	my ($sec, $usec) = gettimeofday;
-	my $path = $dir . sprintf('%011d.%06d', $sec, $usec);
+	my $path = $dir . sprintf('%d.%06d', $sec, $usec);
+
+	my ($sec, $min, $hour) = localtime;
+	my $timestamp = sprintf('%02d:%02d:%02d', $hour, $min, $sec);
 
 	open(FP, '>>', $path) or die $! . ': failed to append to ' . $path;
-	print FP $text . "\n";
+	print FP $timestamp . ' ' . $text . "\n";
 	close(FP);
 }
 
 sub priv_msg {
 	my ($server, $msg, $nick, $address) = @_;
-	filewrite('[' . $server . ', query] <' . $nick . '> ' . $msg);
+	filewrite('[' . $server->{chatnet} . '] <' . $nick . '> ' . $msg);
 }
 
 sub hilight {
 	my ($dest, $text, $stripped) = @_;
 	if ($dest->{level} & MSGLEVEL_HILIGHT) {
-		filewrite('[' . $dest->{server} . ', ' . $dest->{target} . '] ' . $stripped);
+		filewrite('[' . $dest->{server}->{chatnet} . '/' . $dest->{target} . '] ' . $stripped);
 	}
 }
 
