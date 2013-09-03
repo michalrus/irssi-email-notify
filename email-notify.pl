@@ -46,7 +46,7 @@ if (!-d $dir) {
 sub filewrite {
 	my ($text) = @_;
 	my ($sec, $usec) = gettimeofday;
-	my $path = $dir . sprintf('%d.%06d', $sec, $usec);
+	my $path = $dir . sprintf('%d.%06d000', $sec, $usec);
 
 	my ($sec, $min, $hour) = localtime;
 	my $timestamp = sprintf('%02d:%02d:%02d', $hour, $min, $sec);
