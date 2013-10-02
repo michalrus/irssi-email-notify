@@ -34,6 +34,8 @@ done
 
 if [ -f "${TMPFILE}" ] ; then
 	(
+		echo "Content-Type: text/plain; charset=utf-8"
+		echo "Content-Transfer-Encoding: 8bit"
 		echo "From: Irssi <${FROM}>"
 		echo "Subject: "$(date +%H:%M:%S)" -!- New hilights."
 		echo
