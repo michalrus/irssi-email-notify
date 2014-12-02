@@ -44,6 +44,10 @@ if (!-d $dir) {
 }
 
 sub filewrite {
+	# check libnotify-client --ping
+	my $no_libnotify = system('libnotify-client', '--ping');
+	return unless ($no_libnotify);
+
 	my ($text) = @_;
 	my ($esec, $eusec) = gettimeofday;
 	my $path = $dir . sprintf('%d.%06d000', $esec, $eusec);
@@ -58,6 +62,7 @@ sub filewrite {
 
 sub priv_msg {
 	my ($server, $msg, $nick, $address) = @_;
+
 	filewrite('[' . $server->{chatnet} . '] <' . $nick . '> ' . $msg);
 }
 
