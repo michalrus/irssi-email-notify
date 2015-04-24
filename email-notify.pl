@@ -38,9 +38,12 @@ $VERSION = '0.0.1';
 	license     => 'Apache License, Version 2.0'
 );
 
-my $dir = $ENV{HOME} . '/.irssi/email-notify/';
-if (!-d $dir) {
-	make_path $dir or die $! . ': failed to create ' . $dir;
+my $dir = $ENV{HOME} . '/.irssi/email-notify';
+
+sub sanitize {
+	my ($in) = @_;
+	$in =~ s/(^\.$|^\.\.$|\/)/_/g;
+	return $in;
 }
 
 sub filewrite {
@@ -48,9 +51,13 @@ sub filewrite {
 	my $no_libnotify = system('libnotify-client', '--ping');
 	return unless ($no_libnotify);
 
-	my ($text) = @_;
+	my ($network, $handle, $text) = @_;
 	my ($esec, $eusec) = gettimeofday;
-	my $path = $dir . sprintf('%d.%06d000', $esec, $eusec);
+	my $rdir = $dir . '/' . sanitize($network) . '/' . sanitize($handle);
+	if (!-d $rdir) {
+		make_path $rdir or die $! . ': failed to create ' . $dir;
+	}
+	my $path = $rdir . '/' . sprintf('%d.%06d000', $esec, $eusec);
 
 	my ($sec, $min, $hour) = localtime;
 	my $timestamp = sprintf('%02d:%02d:%02d', $hour, $min, $sec);
@@ -62,14 +69,14 @@ sub filewrite {
 
 sub priv_msg {
 	my ($server, $msg, $nick, $address) = @_;
-
-	filewrite('[' . $server->{chatnet} . '] <' . $nick . '> ' . $msg);
+	filewrite($server->{chatnet}, $nick, '<' . $nick . '> ' . $msg);
 }
 
 sub hilight {
 	my ($dest, $text, $stripped) = @_;
 	if ($dest->{level} & MSGLEVEL_HILIGHT) {
-		filewrite('[' . $dest->{server}->{chatnet} . '/' . $dest->{target} . '] ' . $stripped);
+		# todo: tail -n 5 ~/.irssi/log/$netw/$chan
+		filewrite($dest->{server}->{chatnet}, $dest->{target}, $stripped);
 	}
 }
 
