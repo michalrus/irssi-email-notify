@@ -26,6 +26,7 @@ use vars qw($VERSION %IRSSI);
 use File::Path qw(make_path);
 use Time::HiRes qw(gettimeofday);
 use Data::Dumper;
+use IPC::Run3;
 
 use Irssi;
 $VERSION = '0.0.1';
@@ -46,6 +47,11 @@ sub sanitize {
 	return $in;
 }
 
+sub timestamp {
+	my ($sec, $min, $hour) = localtime;
+	return sprintf('%02d:%02d:%02d', $hour, $min, $sec);
+}
+
 sub filewrite {
 	# check libnotify-client --ping
 	my $no_libnotify = system('libnotify-client', '--ping');
@@ -59,24 +65,26 @@ sub filewrite {
 	}
 	my $path = $rdir . '/' . sprintf('%d.%06d000', $esec, $eusec);
 
-	my ($sec, $min, $hour) = localtime;
-	my $timestamp = sprintf('%02d:%02d:%02d', $hour, $min, $sec);
-
 	open(FP, '>>', $path) or die $! . ': failed to append to ' . $path;
-	print FP $timestamp . ' ' . $text . "\n";
+	print FP $text . "\n";
 	close(FP);
 }
 
 sub priv_msg {
 	my ($server, $msg, $nick, $address) = @_;
-	filewrite($server->{chatnet}, $nick, '<' . $nick . '> ' . $msg);
+	filewrite($server->{chatnet}, $nick, timestamp . ' <' . $nick . '> ' . $msg);
 }
 
 sub hilight {
 	my ($dest, $text, $stripped) = @_;
 	if ($dest->{level} & MSGLEVEL_HILIGHT) {
-		# todo: tail -n 5 ~/.irssi/log/$netw/$chan
-		filewrite($dest->{server}->{chatnet}, $dest->{target}, $stripped);
+		my $log = $ENV{HOME} . '/.irssi/log/' . $dest->{server}->{chatnet} . "/" . $dest->{target} . '.log';
+		my $logv = '';
+		if (-e $log) {
+			my @cmd = ('tail', '-n', '5', $log);
+			run3 \@cmd, \undef, \$logv, \undef;
+		}
+		filewrite($dest->{server}->{chatnet}, $dest->{target}, (length $logv > 0 ? $logv : timestamp . ' ' . $stripped));
 	}
 }
 
