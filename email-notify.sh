@@ -24,21 +24,27 @@ TO="m@michalrus.com"
 FROM="scripts@michalrus.com"
 DIR="${HOME}/.irssi/email-notify"
 
-TMPFILE="${DIR}/"$(date +%s.%N)
+find "$DIR" -mindepth 2 -maxdepth 2 -type d | while IFS= read -r HANDLE ; do
+	if [ -n "$(find "$HANDLE" -type f -mmin +10)" ] ; then
+		TMPFILE="${HANDLE}/"$(date +%s.%N)
 
-/bin/ls "${DIR}/" | while read F ; do
-	touch "${TMPFILE}" || eval 'echo "Could not touch ${TMPFILE}" ; exit 1'
-	cat "${DIR}/${F}" >> "${TMPFILE}"
-	rm -f "${DIR}/${F}"
+		find "$HANDLE" -type f | sort | while IFS= read -r FILE ; do
+			touch "$TMPFILE" || eval 'echo "Could not touch ${TMPFILE}" ; exit 1'
+			cat "$FILE" >> "$TMPFILE"
+			rm -f "$FILE"
+		done
+
+		if [ -f "${TMPFILE}" ] ; then
+			(
+				N="$(basename "$(dirname "$HANDLE")")"
+				H="$(basename "$HANDLE")"
+				echo "Content-Type: text/plain; charset=utf-8"
+				echo "Content-Transfer-Encoding: 8bit"
+				echo "From: Irssi <${FROM}>"
+				echo "Subject: $H @ $N — new hilights."
+				echo
+				cat "${TMPFILE}"
+			) | /usr/sbin/sendmail "${TO}" && rm "${TMPFILE}"
+		fi
+	fi
 done
-
-if [ -f "${TMPFILE}" ] ; then
-	(
-		echo "Content-Type: text/plain; charset=utf-8"
-		echo "Content-Transfer-Encoding: 8bit"
-		echo "From: Irssi <${FROM}>"
-		echo "Subject: "$(date +%H:%M:%S)" -!- New hilights."
-		echo
-		cat "${TMPFILE}"
-	) | /usr/sbin/sendmail "${TO}" && rm "${TMPFILE}"
-fi
